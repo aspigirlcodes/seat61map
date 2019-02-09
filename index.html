@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Seat61 worldmap</title>
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+		<script src="https://d3js.org/d3.v5.min.js"></script>
+		<style type="text/css">
+			body, html {
+				margin: 0;
+			}	
+			.title { 
+				text-align: center; 
+			}
+			.title>p {
+				margin-bottom: 0.5rem;
+			}
+			.lead {
+				font-size: 1.5rem;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="title">
+			<h1>Seat61 Country Pages</h1>
+			<p class="lead">The darker the color, the longer the page</p>
+			<p>(Based on the number of characters in the html)</p>
+		</div>
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+		<script type="text/javascript">
+		//Define path generator
+		var projection = d3.geoEqualEarth()
+		var path = d3.geoPath(projection);
+		//Create SVG element
+		var svg = d3.select("body")
+								.append("svg");
+		//Create a container in which all zoom-able elements will live						
+		var map = svg.append("g")
+								 .attr("id", "map")
+		
+	  //Create a new, invisible background rect to catch zoom events
+		var rect = map.append("rect")
+			 						.attr("x", 0)
+			 						.attr("y", 0)
+			 						.attr("opacity", 0);	
+									
+		//Define what to do when panning or zooming
+		var zooming = function(d) {
+			//Log out d3.event.transform, so you can see all the goodies inside
+			//console.log(d3.event.transform);
+			//New offset array
+			var offset = [d3.event.transform.x, d3.event.transform.y];
+			//Calculate new scale
+			var newScale = d3.event.transform.k * 1000;
+			//Update projection with new offset and scale
+			projection.translate(offset)
+								.scale(newScale);
+			//Update all paths and circles
+			svg.selectAll("path")
+				 .attr("d", path);
+		}
+		//Then define the zoom behavior
+		var zoom = d3.zoom()
+								 .scaleExtent([ 0.1, 2.0 ])
+								 //.translateExtent([[ -16000, -8000], [ 16000, 8000 ]])
+								 .on("zoom", zooming);
+		
+		function setWidthHeight(){
+			//Width and height
+			var w = window.innerWidth;
+			var h = window.innerHeight;
+			svg.attr("width", w)
+				 .attr("height", h);
+								
+			map.call(zoom)  //Bind the zoom behavior
+  			 .call(zoom.transform, d3.zoomIdentity  //Then apply the initial transform
+							         .translate(w/2, h/2 -30)
+							         .scale(Math.min((w/6000), (h/3000)))
+									 );
+			
+			rect.attr("width", w)
+				  .attr("height", h);
+		}
+			 
+		var redraw = function(){
+			console.log("redraw")
+			setWidthHeight()
+			svg.selectAll("path")
+				 .attr("d", path);
+      
+		}
+		
+		var drawMap = function(){
+			setWidthHeight()
+			//Load in GeoJSON data
+      Promise.all([
+        d3.json("worldmap.json"),
+        d3.csv("/data.csv")
+      ]).then(function(data) {
+        var world = data[0].features
+				var data = data[1]
+        
+        colorScale = d3.scaleQuantize()
+          .domain([11000, 610000])
+          .range(d3.schemeBlues[9].slice(2, 9))
+					
+				console.log(colorScale.range())
+        				
+        var datadict = data.reduce(function(dict, d) {
+            dict[d.country] = {'link':d.link, 'pageSize': d.pageSize};
+            return dict;
+        }, {});
+        for (var j = 0; j < world.length; j++) {
+		        var properties = world[j].properties
+						var addition = datadict[properties.NAME];
+		        var properties = Object.assign(properties, addition);
+				}
+					        
+				map.selectAll("path")
+        		.data(world)
+           	.enter()
+						.append("a")
+						.attr("href", d => {
+							if(d.properties.link){
+								return "https://www.seat61.com/" + d.properties.link
+							}
+							return ""
+						})
+						.append("path")
+          	.attr("d", path)
+						.attr("id", function(d) {
+					  	var name = d.properties.NAME;
+							return "node" + name.split(' ').join('') 
+				  	})	
+				  	.style("stroke", "black")
+						.style("stroke-width", 1)
+					.merge(map.selectAll("path").data(world)) // enter and update
+		      	.style("fill", function(d){
+							if(d.properties.pageSize){
+								return colorScale(d.properties.pageSize)
+							}
+							return "#ccc"
+						})
+					.append("title")
+						.text(function(d){
+							return d.properties.NAME
+						})
+						
+				
+			})
+		}
+		drawMap()	
+		
+		function debounce (func, interval) {
+		  var timeout;
+		  return function () {
+		    var context = this, args = arguments;
+		    var later = function () {
+		      timeout = null;
+		      func.apply(context, args);
+		    };
+		    clearTimeout(timeout);
+		    timeout = setTimeout(later, interval || 200);
+		  }
+		}
+		window.addEventListener('resize', debounce(redraw, 500));	
+		</script>
+	</body>
+</html>
