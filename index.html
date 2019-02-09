@@ -10,6 +10,11 @@
 				margin: 0;
 			}	
 			.title { 
+				background-color: rgba(255,255,255,0.8);
+				position: absolute;
+  			top: 0;
+  			left: 0;
+  			width: 100vw;
 				text-align: center; 
 			}
 			.title>p {
@@ -17,6 +22,11 @@
 			}
 			.lead {
 				font-size: 1.5rem;
+			}
+			svg {
+				margin-top: 8rem;
+				width: 100vw;
+				height: calc(100vh - 8rem);
 			}
 		</style>
 	</head>
@@ -26,6 +36,7 @@
 			<p class="lead">The darker the color, the longer the page</p>
 			<p>(Based on the number of characters in the html)</p>
 		</div>
+		<svg></svg>
 		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
@@ -34,8 +45,7 @@
 		var projection = d3.geoEqualEarth()
 		var path = d3.geoPath(projection);
 		//Create SVG element
-		var svg = d3.select("body")
-								.append("svg");
+		var svg = d3.select("svg")
 		//Create a container in which all zoom-able elements will live						
 		var map = svg.append("g")
 								 .attr("id", "map")
@@ -69,14 +79,12 @@
 		
 		function setWidthHeight(){
 			//Width and height
-			var w = window.innerWidth;
-			var h = window.innerHeight;
-			svg.attr("width", w)
-				 .attr("height", h);
+			var w = svg.style("width").replace("px", "");;
+			var h = svg.style("height").replace("px", "");;
 								
 			map.call(zoom)  //Bind the zoom behavior
   			 .call(zoom.transform, d3.zoomIdentity  //Then apply the initial transform
-							         .translate(w/2, h/2 -30)
+							         .translate(w/2, h/2)
 							         .scale(Math.min((w/6000), (h/3000)))
 									 );
 			
@@ -126,7 +134,7 @@
 							if(d.properties.link){
 								return "https://www.seat61.com/" + d.properties.link
 							}
-							return ""
+							return "#"
 						})
 						.append("path")
           	.attr("d", path)
