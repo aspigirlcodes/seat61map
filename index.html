@@ -97,7 +97,7 @@
 			//Load in GeoJSON data
       Promise.all([
         d3.json("worldmap.json"),
-        d3.csv("/data.csv")
+        d3.csv("data.csv")
       ]).then(function(data) {
         var world = data[0].features
 				var data = data[1]
